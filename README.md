@@ -13,3 +13,10 @@ https://github.com/sigmavirus24/github3.py
   - If yes, skip
   - If not, move to 5.
 5. Create an issue - https://developer.github.com/v3/issues/#create-an-issue
+
+### Rate limit handling
+
+- Search and use only the top 20 repos
+- Cache the repo file listing in step 2
+- After every issue created, sleep rand{1..4} minutes.
+- After every non-issue repo, sleep rand{0.5..2} minutes.
