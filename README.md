@@ -3,7 +3,8 @@ A bot that crawls Github for projects without any license, and asks the owner to
 
 ### Flow
 
-https://github.com/sigmavirus24/github3.py
+- http://docs.python-requests.org/en/latest/user/quickstart/
+- https://www.python.org/dev/peps/pep-0008/
 
 1. Get repositories with at least 2 stars sorted by recently updated - https://developer.github.com/v3/search/#search-repositories
 2. For every repository, check in contents if there's a `LICENSE{.*}` file - https://api.github.com/repos/dtrupenn/Tetris/contents . If yes, skip.
