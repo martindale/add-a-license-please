@@ -21,6 +21,28 @@ else:
 db = client.add_a_license_db
 
 
+# TODO
+# ---------
+# Add rows in DB for each repo we process
+#   repo_id                 :int
+#   repo_name               :string
+#   repo_full_name          :string
+#   has_license             :boolean
+#   license_file            :string  # name of file with license
+#   license_file_content    :string
+#   issue_url               :string  # only if no license found
+#   raw_item_dump           :string  # item from search
+# ---------
+# Hook up all methods so they work together
+#   For every search repo, check if there's a LICENSE{.*} file
+#   If yes, skip repo
+#   If no, get the README{.*} file and check for license in it
+#       If yes, skip repo
+#       If no, create issue
+# ---------
+# Test everything and write unit tests
+
+
 def make_request(endpoint, req_type='get', headers={}, params={}, body={}):
     '''Make a HTTP request and return JSON response
 
