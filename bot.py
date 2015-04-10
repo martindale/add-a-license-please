@@ -14,7 +14,7 @@ SEARCH_PARAMS = {'q': 'stars:"<5 AND >1"', 'sort': 'updated'}
 
 
 # Gloabl variable init
-if os.environ['PYTHON_ENV'] is 'production':
+if os.environ.get('PYTHON_ENV', None) is 'production':
     client = MongoClient(config.db['prod'])
 else:
     client = MongoClient(config.db['dev'])
