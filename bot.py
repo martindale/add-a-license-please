@@ -49,14 +49,25 @@ def make_request(endpoint, req_type='get', headers={}, params={}, body={}):
         return None
 
 
-def get_search_results():
+def get_repo_contents(author_repo):
+    '''Return the json/dict of repo contents
 
-    r = make_request('/search/repositories', params=SEARCH_PARAMS)
-    print r['items'][0]['full_name']
+    Arguments:
+        author_repo: "author/repo". example: karan/projects
+    '''
+    results = make_request('/repos/%s/contents' % (author_repo,))
+    return results
+
+
+def get_search_results():
+    '''Return a list of repos for the search.
+    '''
+    results = make_request('/search/repositories', params=SEARCH_PARAMS)
+    return results.items
 
 
 def main():
-    get_search_results()
+    repos = get_search_results()
 
 
 if __name__ == '__main__':
