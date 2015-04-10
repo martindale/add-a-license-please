@@ -23,7 +23,7 @@ db = client.add_a_license_db
 
 # TODO
 # ---------
-# Add rows in DB for each repo we process
+# Add rows in DB for each repo we get from search
 #   repo_id                 :int
 #   repo_name               :string
 #   repo_full_name          :string
@@ -34,7 +34,8 @@ db = client.add_a_license_db
 #   raw_item_dump           :string  # item from search
 # ---------
 # Hook up all methods so they work together
-#   For every search repo, check if there's a LICENSE{.*} file
+#   For every search repo, check in db if already processed
+#   If yes, skip. If no, check if there's a LICENSE{.*} file
 #   If yes, skip repo
 #   If no, get the README{.*} file and check for license in it
 #       If yes, skip repo
