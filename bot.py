@@ -61,12 +61,31 @@ def get_repo_contents(author_repo):
 
 def file_is_license(contents_obj):
     '''Return True iff passed Github content is a license file
+
+    Arguments:
+        contents_obj: One dict as returned from repo content
     '''
     if contents_obj.type is not 'file':
         return False
 
     file_name = contents_obj['name'].lower()
     return True if file_name.startswith('license')
+
+
+def readme_has_license(readme_obj):
+    '''Return True iff the passed content obj has "license" in content.
+
+    readme_obj: One dict as returned from repo content which is the readme
+    '''
+    if readme_obj.type is not 'file':
+        return False
+
+    file_content_endpoint = readme_obj['url'].split(config.github.base_url)[1]
+    headers = {'Accept': 'application/vnd.github.v3.raw'}
+
+    readme_content = make_request(file_content_endpoint, headers=headers)
+    readme_content = readme_content.lower()
+    return readme_content.find("license") > -1
 
 
 def get_search_results():
