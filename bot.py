@@ -59,6 +59,16 @@ def get_repo_contents(author_repo):
     return results
 
 
+def file_is_license(contents_obj):
+    '''Return True iff passed Github content is a license file
+    '''
+    if contents_obj.type is not 'file':
+        return False
+
+    file_name = contents_obj['name'].lower()
+    return True if file_name.startswith('license')
+
+
 def get_search_results():
     '''Return a list of repos for the search.
     '''
