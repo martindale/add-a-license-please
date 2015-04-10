@@ -1,16 +1,23 @@
 # Built-in imports
-
+import os
 
 # Third-party dependencies
 from pymongo import MongoClient
 import requests
 
-
 # Custom imports
 import config
 
 
-client = MongoClient('localhost', 23467)
+# Bot constants
+SEARCH_PARAMS = {'q': 'stars:"<5 AND >1"', 'sort': 'updated'}
+
+
+# Gloabl variable init
+if os.environ['PYTHON_ENV'] is 'production':
+    client = MongoClient(config.db['prod'])
+else:
+    client = MongoClient(config.db['dev'])
 db = client.add_a_license_db
 
 
@@ -43,8 +50,8 @@ def make_request(endpoint, req_type='get', headers={}, params={}, body={}):
 
 
 def get_search_results():
-    params = {'q': 'stars:"<5 AND >1"', 'sort': 'updated'}
-    r = make_request('/search/repositories', params=params)
+
+    r = make_request('/search/repositories', params=SEARCH_PARAMS)
     print r['items'][0]['full_name']
 
 
