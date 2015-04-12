@@ -1,7 +1,9 @@
 # Built-in imports
 import json
+import logging
 import os
 import random
+import time
 
 # Third-party dependencies
 import dataset
@@ -21,8 +23,13 @@ if os.environ.get('PYTHON_ENV', None) is 'production':
     db = dataset.connect(config.db['prod'])
 else:
     db = dataset.connect(config.db['dev'])
-
 table = db['repos']
+
+logging.basicConfig(filename='logger.log',
+                    level=logging.INFO,
+                    format='%(asctime)s %(message)s',
+                    datefmt='%m/%d/%Y %I:%M:%S %p')
+logger = logging.getLogger(__name__)
 
 
 def make_request(endpoint, req_type='get', headers={}, params={}, body={}):
@@ -36,6 +43,10 @@ def make_request(endpoint, req_type='get', headers={}, params={}, body={}):
         body: 'post' body content
     '''
 
+    logging.info('Making HTTP request: %s %s', (req_type, endpoint))
+    logger.debug('params: %s', params)
+    logger.debug('body: %s', body)
+
     if not headers.has_key('Authorization'):
         headers['Authorization'] = ('token %s' % config.github['access_token'])
 
@@ -47,9 +58,13 @@ def make_request(endpoint, req_type='get', headers={}, params={}, body={}):
         r = requests.post(url, headers=headers, payload=body)
 
     try:
-        return r.json()
+        if r.status_code is 200:
+            return r.json()
+        else:
+            logger.warn('HTTP request failed')
+            return None
     except e:
-        # TODO log this
+        logger.warn('HTTP request failure: %s', e)
         return None
 
 
@@ -139,29 +154,35 @@ def create_issue(author_repo):
 
 
 def main():
-    # TODO handle exceptions
     repos = get_search_results()
+    logger.info('Got repos: %s', len(repos))
 
     for repo in repos:
-        # TODO: For every search repo, check in db if already processed
+        logger.debug('Processing repo: %s', repo)
+
         if has_seen_repo(repo['id']):
+            logger.info('Already seen repo: %s', repo['id'])
             continue
 
         # Get the files in this repo
-        # TODO: Handle exceptions
         repo_contents = get_repo_contents(repo['full_name'])
+
+        logger.debug('Repo contents: %s', repo_contents)
 
         found_license = False
         # Check to see if there's a license file in the repo
         for repo_file in repo_contents:
+            logger.info('Processing file: %s', repo_file['name'])
+
             if file_is_license(repo_file):
                 # Has a license, log in db and skip
-                table.insert(dict(repo_id=repo['id'],
-                                  repo_name=repo['name'],
-                                  repo_full_name=repo['full_name'],
-                                  has_license=True,
-                                  license_file=repo_file['name'],
-                                  raw_repo_dump=json.dumps(repo)))
+                row = table.insert(dict(repo_id=repo['id'],
+                                        repo_name=repo['name'],
+                                        repo_full_name=repo['full_name'],
+                                        has_license=True,
+                                        license_file=repo_file['name'],
+                                        raw_repo_dump=json.dumps(repo)))
+                logger.info('Is a license file. Saved in db, row=%s' % row)
                 found_license = False
                 break
 
@@ -170,24 +191,36 @@ def main():
 
         # No explicit license file, check if readme has license info
         readme_content_obj = get_readme_content(repo_contents)
+
+        logger.info('Readme file: %s', readme_content_obj['name'])
+
         if readme_has_license(readme_content_obj):
             # Has a license, log in db and skip
-            table.insert(dict(repo_id=repo['id'],
-                              repo_name=repo['name'],
-                              repo_full_name=repo['full_name'],
-                              has_license=True,
-                              license_file=readme_content_obj['name'],
-                              raw_repo_dump=json.dumps(repo)))
+            row = table.insert(dict(repo_id=repo['id'],
+                                    repo_name=repo['name'],
+                                    repo_full_name=repo['full_name'],
+                                    has_license=True,
+                                    license_file=readme_content_obj['name'],
+                                    raw_repo_dump=json.dumps(repo)))
+            logger.info('Readme has license. Saved in db, row=%s' % row)
         else:
+            logger.info('License not found. Creating issue.')
             # Create an issue and log it in the database
             result = create_issue(repo['full_name'])
             issue_url = result.get('html_url', None)
-            table.insert(dict(repo_id=repo['id'],
-                              repo_name=repo['name'],
-                              repo_full_name=repo['full_name'],
-                              has_license=False,
-                              issue_url=issue_url,
-                              raw_repo_dump=json.dumps(repo)))
+
+            logger.info('Issue URL = %s', issue_url)
+
+            row = table.insert(dict(repo_id=repo['id'],
+                                    repo_name=repo['name'],
+                                    repo_full_name=repo['full_name'],
+                                    has_license=False,
+                                    issue_url=issue_url,
+                                    raw_repo_dump=json.dumps(repo)))
+            logger.info('Issue created. Saved in db, row=%s' % row)
+
+    logger.info('Sleeping for 2 minutes')
+    time.sleep(120)
 
 
 if __name__ == '__main__':
