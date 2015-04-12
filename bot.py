@@ -26,7 +26,7 @@ else:
 table = db['repos']
 
 logging.basicConfig(filename='logger.log',
-                    level=logging.INFO,
+                    level=logging.DEBUG,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -43,8 +43,8 @@ def make_request(endpoint, req_type='get', headers={}, params={}, body={}):
     '''
 
     logging.info('Making HTTP request: %s %s' % (req_type, endpoint))
-    logger.debu('params: %s' % params)
-    logger.debu('body: %s' % body)
+    logger.debug('params: %s' % params)
+    logger.debug('body: %s' % body)
 
     if not headers.has_key('Authorization'):
         headers['Authorization'] = ('token %s' % config.github['access_token'])
@@ -54,10 +54,10 @@ def make_request(endpoint, req_type='get', headers={}, params={}, body={}):
     if req_type is 'get':
         r = requests.get(url, headers=headers, params=params)
     elif req_type is 'post':
-        r = requests.post(url, headers=headers, data=JSON.dumps(body))
+        r = requests.post(url, headers=headers, data=json.dumps(body))
 
     try:
-        if r.status_code is in (200, 201):
+        if r.status_code in (200, 201):
             return r.json()
         else:
             logger.warn('HTTP request failed: %s' % r.text)
@@ -155,7 +155,7 @@ def main():
     logger.info('Got repos: %s' % len(repos))
 
     for repo in repos:
-        logger.debu('Processing repo: %s' % repo)
+        logger.debug('Processing repo: %s' % repo)
 
         if has_seen_repo(repo['id']):
             logger.info('Already seen repo: %s' % repo['id'])
@@ -164,7 +164,7 @@ def main():
         # Get the files in this repo
         repo_contents = get_repo_contents(repo['full_name'])
 
-        logger.debu('Repo contents: %s' % repo_contents)
+        logger.debug('Repo contents: %s' % repo_contents)
 
         found_license = False
         # Check to see if there's a license file in the repo
