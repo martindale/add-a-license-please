@@ -27,8 +27,7 @@ table = db['repos']
 
 logging.basicConfig(filename='logger.log',
                     level=logging.INFO,
-                    format='%(asctime)s %(message)s',
-                    datefmt='%m/%d/%Y %I:%M:%S %p')
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 
@@ -43,9 +42,9 @@ def make_request(endpoint, req_type='get', headers={}, params={}, body={}):
         body: 'post' body content
     '''
 
-    logging.info('Making HTTP request: %s %s', (req_type, endpoint))
-    logger.debug('params: %s', params)
-    logger.debug('body: %s', body)
+    logging.info('Making HTTP request: %s %s' % (req_type, endpoint))
+    logger.debu('params: %s' % params)
+    logger.debu('body: %s' % body)
 
     if not headers.has_key('Authorization'):
         headers['Authorization'] = ('token %s' % config.github['access_token'])
@@ -55,17 +54,17 @@ def make_request(endpoint, req_type='get', headers={}, params={}, body={}):
     if req_type is 'get':
         r = requests.get(url, headers=headers, params=params)
     elif req_type is 'post':
-        r = requests.post(url, headers=headers, payload=body)
+        r = requests.post(url, headers=headers, data=JSON.dumps(body))
 
     try:
-        if r.status_code is 200:
+        if r.status_code is in (200, 201):
             return r.json()
         else:
-            logger.warn('HTTP request failed')
-            return None
+            logger.warn('HTTP request failed: %s' % r.text)
+            return {}
     except e:
-        logger.warn('HTTP request failure: %s', e)
-        return None
+        logger.error('HTTP request failure: %s' % e)
+        return {}
 
 
 def get_repo_contents(author_repo):
@@ -74,8 +73,7 @@ def get_repo_contents(author_repo):
     Arguments:
         author_repo: "author/repo". example: karan/projects
     '''
-    results = make_request('/repos/%s/contents' % (author_repo,))
-    return results
+    return make_request('/repos/%s/contents' % (author_repo,))
 
 
 def get_readme_content(contents):
@@ -87,7 +85,7 @@ def get_readme_content(contents):
     for content_file in contents:
         if content_file['name'].lower().startswith('readme'):
             return content_file
-    return None
+    return {}
 
 
 def file_is_license(contents_obj):
@@ -96,7 +94,7 @@ def file_is_license(contents_obj):
     Arguments:
         contents_obj: One dict as returned from repo content
     '''
-    if contents_obj.type is not 'file':
+    if contents_obj['type'] is not 'file':
         return False
 
     file_name = contents_obj['name'].lower()
@@ -108,7 +106,7 @@ def readme_has_license(readme_obj):
 
     readme_obj: One dict as returned from repo content which is the readme
     '''
-    if readme_obj is None or readme_obj.type is not 'file':
+    if readme_obj is None or readme_obj.get('type') is not 'file':
         return False
 
     file_content_endpoint = readme_obj['url'].split(config.github.base_url)[1]
@@ -123,7 +121,7 @@ def get_search_results():
     '''Return a list of repos for the search.
     '''
     results = make_request('/search/repositories', params=SEARCH_PARAMS)
-    return results.items
+    return results.get('items', [])
 
 
 def has_seen_repo(repo_id):
@@ -142,37 +140,36 @@ def create_issue(author_repo):
     Arguments:
         author_repo: "author/repo". example: karan/projects
     '''
-    issue_body = '%s\n\n%s' % (random.choice(config['issue']['body']),
-                               config['issue']['call_to_action'])
+    issue_body = '%s\n\n%s' % (random.choice(config.issue['body']),
+                               config.issue['call_to_action'])
     body = {
-        'title': random.choice(config['issue']['titles']),
-        'body':
+        'title': random.choice(config.issue['titles']),
+        'body': issue_body
     }
-    result = make_request('/repos/%s/contents' % (author_repo,), 'post',
-                           body=body)
-    return result
+    return make_request('/repos/%s/issues' % (author_repo,), 'post',
+                        body=body)
 
 
 def main():
     repos = get_search_results()
-    logger.info('Got repos: %s', len(repos))
+    logger.info('Got repos: %s' % len(repos))
 
     for repo in repos:
-        logger.debug('Processing repo: %s', repo)
+        logger.debu('Processing repo: %s' % repo)
 
         if has_seen_repo(repo['id']):
-            logger.info('Already seen repo: %s', repo['id'])
+            logger.info('Already seen repo: %s' % repo['id'])
             continue
 
         # Get the files in this repo
         repo_contents = get_repo_contents(repo['full_name'])
 
-        logger.debug('Repo contents: %s', repo_contents)
+        logger.debu('Repo contents: %s' % repo_contents)
 
         found_license = False
         # Check to see if there's a license file in the repo
         for repo_file in repo_contents:
-            logger.info('Processing file: %s', repo_file['name'])
+            logger.info('Processing file: %s' % repo_file['name'])
 
             if file_is_license(repo_file):
                 # Has a license, log in db and skip
@@ -192,7 +189,7 @@ def main():
         # No explicit license file, check if readme has license info
         readme_content_obj = get_readme_content(repo_contents)
 
-        logger.info('Readme file: %s', readme_content_obj['name'])
+        logger.info('Readme file: %s' % readme_content_obj.get('name'))
 
         if readme_has_license(readme_content_obj):
             # Has a license, log in db and skip
@@ -209,7 +206,7 @@ def main():
             result = create_issue(repo['full_name'])
             issue_url = result.get('html_url', None)
 
-            logger.info('Issue URL = %s', issue_url)
+            logger.info('Issue URL = %s' % issue_url)
 
             row = table.insert(dict(repo_id=repo['id'],
                                     repo_name=repo['name'],
@@ -219,8 +216,8 @@ def main():
                                     raw_repo_dump=json.dumps(repo)))
             logger.info('Issue created. Saved in db, row=%s' % row)
 
-    logger.info('Sleeping for 2 minutes')
-    time.sleep(120)
+        logger.info('Sleeping for 2 minutes')
+        time.sleep(120)
 
 
 if __name__ == '__main__':
