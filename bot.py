@@ -2,7 +2,7 @@
 import os
 
 # Third-party dependencies
-from pymongo import MongoClient
+import dataset
 import requests
 
 # Custom imports
@@ -14,11 +14,11 @@ SEARCH_PARAMS = {'q': 'stars:"<5 AND >1"', 'sort': 'updated'}
 
 
 # Gloabl variable init
+db = None
 if os.environ.get('PYTHON_ENV', None) is 'production':
-    client = MongoClient(config.db['prod'])
+    db = dataset.connect(config.db['prod'])
 else:
-    client = MongoClient(config.db['dev'])
-db = client.add_a_license_db
+    db = dataset.connect(config.db['dev'])
 
 
 # TODO
@@ -104,7 +104,7 @@ def readme_has_license(readme_obj):
 
     readme_obj: One dict as returned from repo content which is the readme
     '''
-    if readme_obj.type is not 'file':
+    if readme_obj is None or readme_obj.type is not 'file':
         return False
 
     file_content_endpoint = readme_obj['url'].split(config.github.base_url)[1]
@@ -123,6 +123,7 @@ def get_search_results():
 
 
 def main():
+    # TODO handle exceptions
     repos = get_search_results()
 
     for repo in repos:
@@ -131,6 +132,7 @@ def main():
             continue
 
         # Get the files in this repo
+        # TODO: Handle exceptions
         repo_contents = get_repo_contents(repo['full_name'])
 
         # Check to see if there's a license file in the repo
