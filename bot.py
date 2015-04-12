@@ -33,14 +33,6 @@ db = client.add_a_license_db
 #   issue_url               :string  # only if no license found
 #   raw_item_dump           :string  # item from search
 # ---------
-# Hook up all methods so they work together
-#   For every search repo, check in db if already processed
-#   If yes, skip. If no, check if there's a LICENSE{.*} file
-#   If yes, skip repo
-#   If no, get the README{.*} file and check for license in it
-#       If yes, skip repo
-#       If no, create issue
-# ---------
 # Test everything and write unit tests
 
 
@@ -82,6 +74,18 @@ def get_repo_contents(author_repo):
     return results
 
 
+def get_readme_content(contents):
+    '''Returns the content (file) object that represents a README file.
+
+    Arguments:
+        contents: The list of dict contents as returned by Github
+    '''
+    for content_file in contents:
+        if content_file['name'].lower().startswith('readme'):
+            return content_file
+    return None
+
+
 def file_is_license(contents_obj):
     '''Return True iff passed Github content is a license file
 
@@ -92,7 +96,7 @@ def file_is_license(contents_obj):
         return False
 
     file_name = contents_obj['name'].lower()
-    return True if file_name.startswith('license')
+    return True if file_name.startswith('license') else False
 
 
 def readme_has_license(readme_obj):
@@ -120,6 +124,32 @@ def get_search_results():
 
 def main():
     repos = get_search_results()
+
+    for repo in repos:
+        # TODO: For every search repo, check in db if already processed
+        if has_seen_repo(repo):
+            continue
+
+        # Get the files in this repo
+        repo_contents = get_repo_contents(repo['full_name'])
+
+        # Check to see if there's a license file in the repo
+        for repo_file in repo_contents:
+            license_found = False
+            if file_is_license(repo_file):
+                # Has a license, log in db and skip
+                # TODO: log in DB
+                break
+
+        # No explicit license file, check if readme has license info
+        readme_content = get_readme_content(repo_contents)
+        if readme_has_license(readme_content):
+            # Has a license, log in db and skip
+            # TODO: log in DB
+            continue
+        else:
+            # Create an issue and log it in the database
+            pass
 
 
 if __name__ == '__main__':
