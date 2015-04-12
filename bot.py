@@ -1,5 +1,7 @@
 # Built-in imports
+import json
 import os
+import random
 
 # Third-party dependencies
 import dataset
@@ -20,20 +22,7 @@ if os.environ.get('PYTHON_ENV', None) is 'production':
 else:
     db = dataset.connect(config.db['dev'])
 
-
-# TODO
-# ---------
-# Add rows in DB for each repo we get from search
-#   repo_id                 :int
-#   repo_name               :string
-#   repo_full_name          :string
-#   has_license             :boolean
-#   license_file            :string  # name of file with license
-#   license_file_content    :string
-#   issue_url               :string  # only if no license found
-#   raw_item_dump           :string  # item from search
-# ---------
-# Test everything and write unit tests
+table = db['repos']
 
 
 def make_request(endpoint, req_type='get', headers={}, params={}, body={}):
@@ -122,36 +111,83 @@ def get_search_results():
     return results.items
 
 
+def has_seen_repo(repo_id):
+    '''Return True if we have previously seen this repo.
+
+    Arguments:
+        repo_id: The repo id given by Github API
+    '''
+    repo = table.find_one(repo_id=repo_id)
+    return bool(repo)
+
+
+def create_issue(author_repo):
+    '''Creates an issue requesting the user to add a license.
+
+    Arguments:
+        author_repo: "author/repo". example: karan/projects
+    '''
+    issue_body = '%s\n\n%s' % (random.choice(config['issue']['body']),
+                               config['issue']['call_to_action'])
+    body = {
+        'title': random.choice(config['issue']['titles']),
+        'body':
+    }
+    result = make_request('/repos/%s/contents' % (author_repo,), 'post',
+                           body=body)
+    return result
+
+
 def main():
     # TODO handle exceptions
     repos = get_search_results()
 
     for repo in repos:
         # TODO: For every search repo, check in db if already processed
-        if has_seen_repo(repo):
+        if has_seen_repo(repo['id']):
             continue
 
         # Get the files in this repo
         # TODO: Handle exceptions
         repo_contents = get_repo_contents(repo['full_name'])
 
+        found_license = False
         # Check to see if there's a license file in the repo
         for repo_file in repo_contents:
-            license_found = False
             if file_is_license(repo_file):
                 # Has a license, log in db and skip
-                # TODO: log in DB
+                table.insert(dict(repo_id=repo['id'],
+                                  repo_name=repo['name'],
+                                  repo_full_name=repo['full_name'],
+                                  has_license=True,
+                                  license_file=repo_file['name'],
+                                  raw_repo_dump=json.dumps(repo)))
+                found_license = False
                 break
 
+        if found_license:
+            break
+
         # No explicit license file, check if readme has license info
-        readme_content = get_readme_content(repo_contents)
-        if readme_has_license(readme_content):
+        readme_content_obj = get_readme_content(repo_contents)
+        if readme_has_license(readme_content_obj):
             # Has a license, log in db and skip
-            # TODO: log in DB
-            continue
+            table.insert(dict(repo_id=repo['id'],
+                              repo_name=repo['name'],
+                              repo_full_name=repo['full_name'],
+                              has_license=True,
+                              license_file=readme_content_obj['name'],
+                              raw_repo_dump=json.dumps(repo)))
         else:
             # Create an issue and log it in the database
-            pass
+            result = create_issue(repo['full_name'])
+            issue_url = result.get('html_url', None)
+            table.insert(dict(repo_id=repo['id'],
+                              repo_name=repo['name'],
+                              repo_full_name=repo['full_name'],
+                              has_license=False,
+                              issue_url=issue_url,
+                              raw_repo_dump=json.dumps(repo)))
 
 
 if __name__ == '__main__':
