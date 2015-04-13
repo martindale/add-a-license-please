@@ -31,20 +31,19 @@ logging.basicConfig(filename='logger.log',
 logger = logging.getLogger(__name__)
 
 
-def make_request(endpoint, req_type='get', headers={}, params={}, body={}):
+def make_request(endpoint, req_type='get', headers={}, params={}, text=False):
     '''Make a HTTP request and return JSON response
 
     Arguments:
         endpoint: Github endpoint to hit
         req_type: HTTP request type
         headers: Any custom headers that must be sent
-        params: 'get' query parameters
-        body: 'post' body content
+        params: 'get' query parameters or 'post' body
+        text: Returns raw text response if True
     '''
 
     logging.info('Making HTTP request: %s %s' % (req_type, endpoint))
     logger.debug('params: %s' % params)
-    logger.debug('body: %s' % body)
 
     if not headers.has_key('Authorization'):
         headers['Authorization'] = ('token %s' % config.github['access_token'])
@@ -54,15 +53,17 @@ def make_request(endpoint, req_type='get', headers={}, params={}, body={}):
     if req_type is 'get':
         r = requests.get(url, headers=headers, params=params)
     elif req_type is 'post':
-        r = requests.post(url, headers=headers, data=json.dumps(body))
+        r = requests.post(url, headers=headers, data=json.dumps(params))
 
     try:
         if r.status_code in (200, 201):
+            if text:
+                return r.text
             return r.json()
         else:
             logger.warn('HTTP request failed: %s' % r.text)
             return {}
-    except e:
+    except Exception, e:
         logger.error('HTTP request failure: %s' % e)
         return {}
 
@@ -107,10 +108,11 @@ def readme_has_license(readme_obj):
     if readme_obj is None:
         return False
 
-    file_content_endpoint = readme_obj['url'].split(config.github.base_url)[1]
+    file_content_endpoint = readme_obj['url'].split(config.github['base_url'])[1]
     headers = {'Accept': 'application/vnd.github.v3.raw'}
 
-    readme_content = make_request(file_content_endpoint, headers=headers)
+    readme_content = make_request(file_content_endpoint, headers=headers,
+                                  text=True)
     readme_content = readme_content.lower()
     return readme_content.find("license") > -1
 
@@ -145,7 +147,7 @@ def create_issue(author_repo):
         'body': issue_body
     }
     return make_request('/repos/%s/issues' % (author_repo,), 'post',
-                        body=body)
+                        params=body)
 
 
 def main():
