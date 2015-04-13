@@ -24,5 +24,8 @@ issue = dict(
          'copyright the author and may not be used by anyone else.')
     ],
     call_to_action = ('Please use something like http://choosealicense.com/ '
-                      'to decide what license to use. I recommend MIT or GPL.')
+                      'to decide what license to use. I recommend MIT or GPL.'
+                      '\n\n'
+                      'A PSA called [**Add a License Please**]'
+                      '(https://github.com/karan/add-a-license-please)')
 )
