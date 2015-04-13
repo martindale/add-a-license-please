@@ -16,11 +16,21 @@ Source: https://help.github.com/articles/open-source-licensing/
 
 The bot searches Github for repositories that have some stars (although the star restriction is a bit wonky). For the returned repos, it will check to see existence of any license information. If it's missing, it will create an issue in the repo. Simple!
 
+All repositories that are processed (skipped or issue created) are saved in a sqlite3 database. This is done to prevent double scanning the same repository.
+
 ### Where is this bot running?
 
 Currently I'm running this bot on a 1GB [DigitalOcean](https://www.digitalocean.com/?refcode=422889a8186d) instance (yes, that's an affiliate link. Use that to get free VPS for 2 months). The bot is low of resources and uses a couple MB of RAM.
 
 ### Running
+
+#### Requirements
+
+- Python 2.7
+- pip
+- sqlite3
+
+#### Instructions 
 
 Create a file called `config.py` that looks like `config_example.py`. Fill in the necessary values.
 
