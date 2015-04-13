@@ -2,7 +2,7 @@
 
 A bot that crawls Github for projects without any license, and asks the owner to add a license.
 
-![](https://raw.githubusercontent.com/karan/add-a-license-please/master/image.jpg)
+![](https://raw.githubusercontent.com/karan/add-a-license-please/master/logo.jpg)
 
 Github is full of "open source" project that carry no explicit license. This bot will create an issue in repositories that are missing a license.
 

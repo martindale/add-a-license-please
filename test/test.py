@@ -87,6 +87,5 @@ class TestBotMethods(unittest.TestCase):
         self.assertFalse(bot.readme_has_license(readme_without_license))
 
 
-
 if __name__ == '__main__':
     unittest.main()
