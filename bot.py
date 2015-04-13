@@ -169,7 +169,6 @@ def main():
 
         logger.debug('Repo contents: %s' % repo_contents)
 
-        found_license = False
         # Check to see if there's a license file in the repo
         for repo_file in repo_contents:
             logger.info('Processing file: %s' % repo_file['name'])
@@ -183,11 +182,7 @@ def main():
                                         license_file=repo_file['name'],
                                         raw_repo_dump=json.dumps(repo)))
                 logger.info('Is a license file. Saved in db, row=%s' % str(row))
-                found_license = True
                 break
-
-        if found_license:
-            break
 
         # No explicit license file, check if readme has license info
         readme_content_obj = get_readme_content(repo_contents)
