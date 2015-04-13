@@ -216,8 +216,8 @@ def main():
                                     raw_repo_dump=json.dumps(repo)))
             logger.info('Issue created. Saved in db, row=%s' % str(row))
 
-        logger.info('Sleeping for 2 minutes')
-        time.sleep(120)
+            logger.info('Sleeping for 2 minutes')
+            time.sleep(120)
 
 
 if __name__ == '__main__':
