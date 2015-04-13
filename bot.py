@@ -94,9 +94,6 @@ def file_is_license(contents_obj):
     Arguments:
         contents_obj: One dict as returned from repo content
     '''
-    if contents_obj['type'] is not 'file':
-        return False
-
     file_name = contents_obj['name'].lower()
     return True if file_name.startswith('license') else False
 
@@ -106,7 +103,8 @@ def readme_has_license(readme_obj):
 
     readme_obj: One dict as returned from repo content which is the readme
     '''
-    if readme_obj is None or readme_obj.get('type') is not 'file':
+    logger.debug('Checking README: %s' % readme_obj)
+    if readme_obj is None:
         return False
 
     file_content_endpoint = readme_obj['url'].split(config.github.base_url)[1]
@@ -157,8 +155,13 @@ def main():
     for repo in repos:
         logger.debug('Processing repo: %s' % repo)
 
+        star_count = repo.get('stargazers_count')
+        if star_count is 0 or star_count > 5:
+            logger.info('Skipping stars out of range: %s' % str(star_count))
+            continue
+
         if has_seen_repo(repo['id']):
-            logger.info('Already seen repo: %s' % repo['id'])
+            logger.info('Already seen repo: %s' % str(repo['id']))
             continue
 
         # Get the files in this repo
@@ -179,8 +182,8 @@ def main():
                                         has_license=True,
                                         license_file=repo_file['name'],
                                         raw_repo_dump=json.dumps(repo)))
-                logger.info('Is a license file. Saved in db, row=%s' % row)
-                found_license = False
+                logger.info('Is a license file. Saved in db, row=%s' % str(row))
+                found_license = True
                 break
 
         if found_license:
@@ -199,7 +202,7 @@ def main():
                                     has_license=True,
                                     license_file=readme_content_obj['name'],
                                     raw_repo_dump=json.dumps(repo)))
-            logger.info('Readme has license. Saved in db, row=%s' % row)
+            logger.info('Readme has license. Saved in db, row=%s' % str(row))
         else:
             logger.info('License not found. Creating issue.')
             # Create an issue and log it in the database
@@ -214,7 +217,7 @@ def main():
                                     has_license=False,
                                     issue_url=issue_url,
                                     raw_repo_dump=json.dumps(repo)))
-            logger.info('Issue created. Saved in db, row=%s' % row)
+            logger.info('Issue created. Saved in db, row=%s' % str(row))
 
         logger.info('Sleeping for 2 minutes')
         time.sleep(120)
