@@ -20,6 +20,24 @@ The bot searches Github for repositories that have some stars (although the star
 
 Currently I'm running this bot on a 1GB [DigitalOcean](https://www.digitalocean.com/?refcode=422889a8186d) instance (yes, that's an affiliate link. Use that to get free VPS for 2 months). The bot is low of resources and uses a couple MB of RAM.
 
+### Running
+
+Create a file called `config.py` that looks like `config_example.py`. Fill in the necessary values.
+
+For Github config:
+
+1. [Register your application](https://developer.github.com/guides/basics-of-authentication/#registering-your-app)
+2. [Create your oauth token](https://help.github.com/articles/creating-an-access-token-for-command-line-use/)
+
+Then, to run the bot:
+
+```bash
+$ pip install -r requirements.txt
+$ python bot.py
+```
+
+This only runs the bot once, meaning only one search. To make it look (think `while True: search and stuff`), you need to write your own wrapper. I'm not including mine to prevent misuse of Github's API.
+
 ### Testing
 
 From the project root:
