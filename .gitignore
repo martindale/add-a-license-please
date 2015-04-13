@@ -82,3 +82,4 @@ Temporary Items
 config.py
 data/
 *.db
+forever_run.py
